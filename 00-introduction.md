@@ -1,105 +1,99 @@
-# BOLT #0: Introduction and Index
+# BOLT #0: 導入と索引
 
-Welcome, friend! These Basis of Lightning Technology (BOLT) documents
-describe a layer-2 protocol for off-chain bitcoin transfer by mutual
-cooperation, relying on on-chain transactions for enforcement if
-necessary.
+ようこそ、みなさん! これらライトニング技術の基礎 (Basis of Lightning Technology == BOLT) 文書群は、必要に応じてオンチェーン・トランザクションを矯正することによる、相互連携によるオフチェーンのビットコイン送金のためのレイヤー2プロトコルについて記述しています。
 
-Some requirements are subtle; we have tried to highlight motivations
-and reasoning behind the results you see here. I'm sure we've fallen
-short; if you find any part confusing or wrong, please contact us and
-help us improve.
+いくつかの要件は微妙です。私たち(訳注:仕様策定者たち)は、あなたがここで理解する結果の背後にある理由と動機に光を当てるよう努めています。ねばなりません。私たちには至らない部分があると思っていますので、もし、あなたが、混乱したり間違えている箇所を見つけた場合には、私たちに連絡を取り改善の手助けをしてください。
 
-This is version 0.
+本文書はバージョン 0 です。
 
-1. [BOLT #1](01-messaging.md): Base Protocol
-2. [BOLT #2](02-peer-protocol.md): Peer Protocol for Channel Management
-3. [BOLT #3](03-transactions.md): Bitcoin Transaction and Script Formats
-4. [BOLT #4](04-onion-routing.md): Onion Routing Protocol
-5. [BOLT #5](05-onchain.md): Recommendations for On-chain Transaction Handling
-7. [BOLT #7](07-routing-gossip.md): P2P Node and Channel Discovery
-8. [BOLT #8](08-transport.md): Encrypted and Authenticated Transport
-9. [BOLT #9](09-features.md): Assigned Feature Flags
-10. [BOLT #10](10-dns-bootstrap.md): DNS Bootstrap and Assisted Node Location
-11. [BOLT #11](11-payment-encoding.md): Invoice Protocol for Lightning Payments
+1. [BOLT #1](01-messaging.md): 基本プロトコル
+2. [BOLT #2](02-peer-protocol.md): チャネル管理のためのピア・プロトコル
+3. [BOLT #3](03-transactions.md): Bitcoin トランザクションと Script フォーマット
+4. [BOLT #4](04-onion-routing.md): オニオン・ルーティング・プロトコル
+5. [BOLT #5](05-onchain.md): オン・チェーンのトランザクション処理に関する推奨事項
+7. [BOLT #7](07-routing-gossip.md): P2P ノードとチャネル発見
+8. [BOLT #8](08-transport.md): 暗号化と認証がなされたトランスポート
+9. [BOLT #9](09-features.md): 割り当てられた機能フラグ
+10. [BOLT #10](10-dns-bootstrap.md): DNS ブートストラップと Assisted Node Location
+11. [BOLT #11](11-payment-encoding.md): ライトニング支払いのための請求書プロトコル
 
-## Glossary and Terminology Guide
+## 用語と用語ガイド
 
-* *Node*:
-   * A computer or other device connected to the Bitcoin network.
+* *ノード*:
+   * ビットコインネットワークに接続されたコンピュータやその他デバイス。
 
-* *Peers*:
-   * *Nodes* transacting bitcoins with one another through a *channel*.
+* *ピア*:
+   * *チャネル* を通じて他方と取引する *ノード* たち。
 
 * *MSAT*:
-   * A millisatoshi, often used as a field name.
+   * ミリ satoshi (satoshi の 1000分の1)、しばしばフィールド名に使われる。
 
-* *Funding transaction*:
-   * An irreversible on-chain transaction that pays to both *peers* on a *channel*.
-    It can only be spent by mutual consent.
+* *資金源トランザクション*:
+   * *チャンネル* 上の両方の *ピア* に支払う不可逆的なオンチェーン取引
+    それは相互同意によってのみ支払えます。
 
-* *Channel*:
-   * A fast, off-chain method of mutual exchange between two *peers*.
-    To transact funds, peers exchange signatures to create an updated *commitment transaction*.
+* *チャネル*:
+   * 2つの *ピア* の間で相互交換の高速なオフチェーン手法。
+    資金を取引するために、ピアは、更新された *コミットメント取引* を作るための書名を交換します。
 
-* *Commitment transaction*:
-   * A transaction that spends the *funding transaction*.
-    Each *peer* holds the other peer's signature for this transaction, so that each always has a commitment transaction that it can spend.
+* *コミットメント・トランザクション*:
+   * *資金源トランザクション* を消費するためのトランザクション。
+    それぞれが常に消費可能なコミットメントトランザクションを持つよう、各 *peer* はこのトランザクションのための署名を保持します。
     After a new commitment transaction is negotiated, the old one is *revoked*.
 
 * *HTLC*: Hashed Time Locked Contract.
-   * A conditional payment between two *peers*:
-    the recipient can spend the payment by presenting its signature and a *payment preimage*, otherwise the payer can cancel the contract by spending it after a given time.
-    These are implemented as outputs from the *commitment transaction*.
+   * 2 つの *ピア* の間での条件付き支払い:
+    受取人はその署名と*支払いプリイメージ*を提示することによって支払いを行うことができ、そうでなければ、支払人は所定の時間後にそれを消費することにより、契約を取り消すことができる。
+    それらは *コミットメント・トランザクション* からの出力として実装される。
 
-* *Payment hash*:
-   * The *HTLC* contains the payment hash, which is the hash of the *payment preimage*.
+* *支払いハッシュ*
+   * The *HTLC* は *支払いプリイメージ* のハッシュである支払いハッシュを含む。
 
-* *Payment preimage*:
-   * Proof that payment has been received, held by the final recipient, who is the only person who knows this secret.
-    The final recipient releases the preimage in order to release funds.
-    The payment preimage is hashed as the *payment hash* in the *HTLC*.
+* *支払いプリイメージ*
+   * 秘密鍵を知っている唯一存在である最終受取人に行われた、支払いであることの証明。
+    最終受取人は資金を開放するためのプリイメージをリリースする。
+    支払いプリイメージは *HTLC* 内の *支払いハッシュ* としてハッシュ化されている。
 
-* *Commitment revocation secret key*:
-   * Every *commitment transaction* has a unique *commitment revocation* secret-key value that allows the other *peer* to spend all outputs immediately:
+* *コミットメント取り消し秘密鍵*:
+   * それぞれの *コミットメント・トランザクション* は、他の *ピア* が全てのアウトプットの消費を直ちに許可する、固有の *コミットメント取り消し* 秘密鍵の値を持っています。
     revealing this key is how old commitment transactions are revoked.
-    To support revocation, each output of the commitment transaction refers to the commitment revocation public key.
+    取り消しをサポートするために、それぞれのコミットメント・トランザクションの出力はコミットメント取り消し公開鍵を参照する。
 
-* *Per-commitment secret*:
-   * Every *commitment transaction* derives its keys from a per-commitment secret, which is generated such that the series of per-commitment secrets for all previous commitments can be stored compactly.
+* *コミットメント毎のシークレット*:
+   * すべての *コミットメント・トランザクション*  は、以前のコミットメントごとの一連のコミットメントのシークレットをコンパクトに格納できるように生成される、コミットメント毎のシークレットから自身の鍵を導出します。
 
-* *Mutual close*:
-   * A cooperative close of a *channel*, accomplished by broadcasting an unconditional spend of the *funding transaction* with an output to each *peer* (unless one output is too small, and thus is not included).
+* *相互クローズ*:
+   * *チャネル*の協調クローズ。(あるアウトプットが小さすぎて含まれない場合を除いて)、各 *ピア* への出力を伴う *資金源トランザクション* の無条件の消費をブロードキャストすることによって達成される。
 
-* *Unilateral close*:
-   * An uncooperative close of a *channel*, accomplished by broadcasting a *commitment transaction*.
-    This transaction is larger (i.e. less efficient) than a *mutual close* transaction, and the peer whose commitment is broadcast cannot access its own outputs for some previously-negotiated duration.
+* *片側クローズ*:
+   * *コミットメント・トランザクション* をブロードキャストすることによって達成される、*チャネル*の非協力的な閉鎖。
+    このトランザクションは *相互クローズ* トランザクションよりも大きく（すなわち、効率が悪い）、コミットメントがブロードキャストされているピアは、以前にネゴシエートされた期間、自身のアウトプットにアクセスできない。
 
-* *Revoked transaction close*:
-   * An invalid close of a *channel*, accomplished by broadcasting a revoked *commitment transaction*.
-    Since the other *peer* knows the *commitment revocation secret key*, it can create a *penalty transaction*.
+* *トランザクション取り消しによるクローズ*:
+   * 取り消された *コミットメント・トランザクション* のブロードキャストによって発生する、 *チャネル* の不正なクローズ。
+    他の *ピア* は *コミットメント取り消し秘密鍵* を知るので、 *ペナルティ・トランザクション* を生成できる。
 
-* *Penalty transaction*:
-   * A transaction that spends all outputs of a revoked *commitment transaction*, using the *commitment revocation secret key*.
+* *ペナルティ・トランザクション*
+   * *コミットメント取り消し秘密鍵* を用いた、取り消された *commitment transaction* の全てのアウトプットを消費する、トランザクション。
     A *peer* uses this if the other peer tries to "cheat" by broadcasting a revoked *commitment transaction*.
 
-* *Commitment number*:
-   * A 48-bit incrementing counter for each *commitment transaction*;
-    counters are independent for each *peer* in the *channel* and start at 0.
+* *コミットメント番号*:
+   * それぞれの *コミットメント・トランザクション* のための、48ビットの加算カウンタ;
+    各カウンタは *チャネル* の中の *ピア* 毎に独立で、0から始まる。
 
-* *It's ok to be odd*:
-   * A rule applied to some numeric fields that indicates either optional or compulsory support for features.
-    Even numbers indicate that both endpoints MUST support the feature in question, while odd numbers indicate that the feature MAY be disregarded by the other endpoint.
+* *奇数ならOK*:
+   * 機能のために強制またはオプショナルかを示す幾つかの数値フィールドに与えられるルール。
+    偶数は両方のエンドポイントが問い合わせの機能をサポートしなければならないことを示し、奇数番号は機能が方々のエンドポイントによって無視されても良いことを示す。
 
 * `chain_hash`:
-   * Used in several of the BOLT documents to denote the genesis hash of a target blockchain.
-    This allows *nodes* to create and reference *channels* on several blockchains.
-    Nodes are to ignore any messages that reference a `chain_hash` that are unknown to them.
-    Unlike `bitcoin-cli`, the hash is not reversed but is used directly.
+   * BOLTドキュメントのいくつかで、ターゲットブロックチェーンのジェネシス・ハッシュを示すのに使用される。
+    これは、*nodes* に、いくつかのブロックチェーン上の *channels* を作成して参照することを可能とする。
+    ノードは、未知の `chain_hash` を参照するメッセージを無視しなければならない。
+    `bitcoin-cli`とは違い、ハッシュは逆転されず直接使用される。
 
-     For the main chain Bitcoin blockchain, the `chain_hash` value MUST be (encoded in hex):  `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
+     メインチェーンのBitcoinブロックチェーンでは、 `chain_hash` 値は（16進数で) `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000` でなければならない.
 
-## Theme Song
+## テーマソング
 
       Why this network could be democratic...
       Numismatic...
@@ -148,7 +142,7 @@ This is version 0.
 
    -- Anthony Towns <aj@erisian.com.au>
 
-## Authors
+## 著者
 
 [ FIXME: Insert Author List ]
 
