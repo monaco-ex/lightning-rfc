@@ -36,20 +36,21 @@ This is version 0.
 
 * *Funding transaction*:
    * An irreversible on-chain transaction that pays to both *peers* on a *channel*.
-   It can only be spent by mutual consent.
+    It can only be spent by mutual consent.
 
 * *Channel*:
    * A fast, off-chain method of mutual exchange between two *peers*.
-   To transact funds, peers exchange signatures to create an updated *commitment transaction*.
+    To transact funds, peers exchange signatures to create an updated *commitment transaction*.
 
 * *Commitment transaction*:
    * A transaction that spends the *funding transaction*.
-   Each *peer* holds the other peer's signature for this transaction, so that each always has a commitment transaction that it can spend. After a new commitment transaction is negotiated, the old one is *revoked*.
+    Each *peer* holds the other peer's signature for this transaction, so that each always has a commitment transaction that it can spend.
+    After a new commitment transaction is negotiated, the old one is *revoked*.
 
 * *HTLC*: Hashed Time Locked Contract.
    * A conditional payment between two *peers*:
-   the recipient can spend the payment by presenting its signature and a *payment preimage*, otherwise the payer can cancel the contract by spending it after a given time.
-   These are implemented as outputs from the *commitment transaction*.
+    the recipient can spend the payment by presenting its signature and a *payment preimage*, otherwise the payer can cancel the contract by spending it after a given time.
+    These are implemented as outputs from the *commitment transaction*.
 
 * *Payment hash*:
    * The *HTLC* contains the payment hash, which is the hash of the *payment preimage*.
